@@ -1,0 +1,10 @@
+﻿################################################################################
+# 此 .gitignore 文件已由 Microsoft(R) Visual Studio 自动创建。
+################################################################################
+
+/.vs
+/.idea/.idea.ConsoleChat/.idea
+/ConsoleChat/bin/Debug/net9.0
+/ConsoleChat/obj
+/ConsoleChat/Properties
+/ConsoleChat.sln.DotSettings.user
