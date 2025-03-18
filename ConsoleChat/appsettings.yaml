@@ -1,0 +1,6 @@
+DeepSeek:
+  ApiKey: 
+  Endpoint: https://api.deepseek.com
+  ModelIds:
+    - deepseek-chat
+    - deepseek-reasoner
