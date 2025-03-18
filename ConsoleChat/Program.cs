@@ -36,8 +36,7 @@ OpenAIClient client = new(credential, options);
 // 注册 OpenAI 聊天补全服务
 builder.Services.AddOpenAIChatCompletion(
     modelId:modelId,
-    openAIClient: client,
-    serviceId:"deepseek-chat"
+    openAIClient: client
 );
 
 var kernel = builder.Build();
