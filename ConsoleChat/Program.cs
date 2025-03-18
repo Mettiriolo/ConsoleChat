@@ -1,15 +1,11 @@
-﻿using System.ClientModel;
-using System.Text;
-using ConsoleChat;
-using Microsoft.Extensions.AI;
+﻿using ConsoleChat;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Yaml;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Memory;
 using OpenAI;
+using System.ClientModel;
+using System.Text;
 
 // 配置 OpenAI 客户端
 var builder = Kernel.CreateBuilder();
@@ -42,10 +38,9 @@ builder.Services.AddOpenAIChatCompletion(
 var kernel = builder.Build();
 
 // 注册原生 Skill
-kernel.ImportPluginFromObject(new MySkills(), "MySkills");
-
 kernel.ImportPluginFromObject(new MySkills(), "MySkill");
-ChatHistory chatHistory = new();
+
+ChatHistory chatHistory = [];
 var commonGreetings = new HashSet<string> { "hello", "hi" };
 
 while (true)
