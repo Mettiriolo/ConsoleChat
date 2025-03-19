@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
-using COSXML;
-using COSXML.Auth;
-using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
+using RazorPageChat.Data;
 
 namespace RazorPageChat
 {
@@ -11,13 +10,21 @@ namespace RazorPageChat
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddDataProtection()
-        .PersistKeysToFileSystem(new DirectoryInfo("/app/dataprotection"))
-        .SetApplicationName("RazorPageChat");
-
-
             // Add services to the container.
             builder.Services.AddRazorPages();
+
+            string connectionString = $"server={Environment.GetEnvironmentVariable("MYSQL_ADDRESS")};database=chat_db;user={Environment.GetEnvironmentVariable("MYSQL_USERNAME")};password={Environment.GetEnvironmentVariable("MYSQL_PASSWORD")}";
+
+            var serverVersion = new MySqlServerVersion(new Version(5, 7, 0));
+            builder.Services.AddDbContext<ChatDbContext>(options =>
+            {
+                options.UseMySql(connectionString, serverVersion);
+            });
+
+            builder.Services.AddDataProtection()
+                            .PersistKeysToDbContext<ChatDbContext>()
+                            .SetApplicationName("RazorPageChat")            // 确保同一应用使用相同的密钥
+                            .SetDefaultKeyLifetime(TimeSpan.FromDays(90)); // 90 天密钥轮换
 
             var app = builder.Build();
 
@@ -37,6 +44,12 @@ namespace RazorPageChat
             app.UseAuthorization();
 
             app.MapRazorPages();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
+                context.Database.Migrate(); // 运行 EF Core 迁移
+            }
 
             app.Run();
         }
