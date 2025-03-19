@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:model="clr-namespace:AvaloniaChat.Models;assembly=AvaloniaChat"
+		xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        x:Class="AvaloniaChat.MainWindow"
+        Title="Semantic Kernel 聊天应用">
+    <Grid RowDefinitions="*, Auto">
+        <ScrollViewer Grid.Row="0" Margin="10">
+            <ItemsControl Name="ChatMessages">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="model:ChatMessage">
+                        <Border Margin="5" Padding="10" 
+                                Background="{Binding IsUser, Converter={StaticResource BoolToColorConverter}}"
+                                CornerRadius="5">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Sender.Label}" FontWeight="Bold"/>
+                                <!--<TextBlock Text="{Binding Content}" TextWrapping="Wrap"/>-->
+								<md:MarkdownScrollViewer Markdown="{Binding Content}"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+        
+        <Grid Grid.Row="1" ColumnDefinitions="*, Auto" Margin="10">
+            <TextBox Grid.Column="0" Name="MessageInput" Watermark="输入消息..." KeyDown="OnMessageInputKeyDown"/>
+            <Button Name="sendBtn" Grid.Column="1" Content="发送" Margin="5,0,0,0" Click="OnSendButtonClick"/>
+        </Grid>
+    </Grid>
+</Window> 
