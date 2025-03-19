@@ -1,3 +1,8 @@
+using Microsoft.AspNetCore.DataProtection;
+using COSXML;
+using COSXML.Auth;
+using System.Security.Cryptography;
+
 namespace RazorPageChat
 {
     public class Program
@@ -5,6 +10,11 @@ namespace RazorPageChat
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo("/app/dataprotection"))
+        .SetApplicationName("RazorPageChat");
+
 
             // Add services to the container.
             builder.Services.AddRazorPages();
