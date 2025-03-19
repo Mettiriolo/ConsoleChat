@@ -6,4 +6,5 @@
   </Configurations>
   <Project Path="AvaloniaChat/AvaloniaChat.csproj" Id="9f4a483b-e1f3-4d50-aa56-6f27d8e67229" />
   <Project Path="ConsoleChat/ConsoleChat.csproj" />
+  <Project Path="RazorPageChat/RazorPageChat.csproj" Id="7001bfdc-c705-4eca-8656-4aad9a7d3eb6" />
 </Solution>

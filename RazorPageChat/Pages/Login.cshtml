@@ -1,0 +1,44 @@
+@page
+@model LoginModel
+@{
+    ViewData["Title"] = "登录";
+    Layout = "_LoginLayout";
+}
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h1>登录聊天</h1>
+            <p class="login-subtitle">登录以访问您的聊天历史</p>
+        </div>
+        
+        <div class="login-body">
+            <div id="error-message" class="error-message"></div>
+            
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" class="login-input" placeholder="请输入用户名" autocomplete="username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" class="login-input" placeholder="请输入密码" autocomplete="current-password">
+            </div>
+            
+            <div class="form-group remember-me">
+                <input type="checkbox" id="remember-me">
+                <label for="remember-me">记住我</label>
+            </div>
+            
+            <button id="login-button" class="login-button">登录</button>
+            
+            <div class="demo-login">
+                <p>没有账号？<button id="demo-account" class="text-button">使用演示账号</button></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/login.js"></script>
+} 

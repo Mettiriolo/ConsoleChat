@@ -1,0 +1,105 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "聊天";
+}
+
+<div id="login-check" style="display: none;"></div>
+
+<div class="chat-container">
+    <!-- 顶部按钮组 -->
+    <div class="top-buttons">
+        <div class="user-info">
+            <div class="user-avatar">
+                <span id="user-initial">?</span>
+            </div>
+            <span id="username-display" class="username-display">用户</span>
+        </div>
+        <button id="logout-button" class="action-button" title="登出">
+            <i class="fas fa-sign-out-alt"></i>
+        </button>
+        <button id="history-button" class="action-button" title="历史会话">
+            <i class="fas fa-history"></i>
+        </button>
+        <button id="config-button" class="action-button" title="设置">
+            <i class="fas fa-cog"></i>
+        </button>
+    </div>
+
+    <div class="chat-messages" id="chat-messages">
+      @*   <div class="message assistant-message">
+            <div class="message-avatar assistant-avatar">A</div>
+            <div class="message-content">你好！我是基于deepseek-chat的AI助手。有什么我可以帮助你的吗？</div>
+        </div> *@
+    </div>
+    
+    <div class="chat-input-container">
+        <form id="chat-form">
+            <div class="input-wrapper">
+                <textarea id="chat-input" class="chat-input" placeholder="输入消息，按 Enter 发送..." rows="1"></textarea>
+                <button type="submit" id="send-button" class="send-button" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 底部按钮组 -->
+    <div class="bottom-actions">
+        <button id="new-chat" class="text-button">
+            <i class="fas fa-plus-circle"></i> 新会话
+        </button>
+    </div>
+</div>
+
+<!-- 配置面板 -->
+<div id="config-panel" class="config-panel">
+    <div class="config-header">
+        <h2>API设置</h2>
+        <button id="close-config" class="close-config">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="config-body">
+        <div class="config-item">
+            <label for="api-key">API Key</label>
+            <input type="password" id="api-key" placeholder="输入您的API Key" />
+        </div>
+        <div class="config-item">
+            <label for="endpoint">Endpoint</label>
+            <input type="text" id="endpoint" placeholder="API服务器地址" />
+        </div>
+        <div class="config-item">
+            <label for="model-id">Model ID</label>
+            <input type="text" id="model-id" placeholder="模型ID" />
+        </div>
+        <div class="config-footer">
+            <button id="save-config" class="save-config">保存设置</button>
+        </div>
+    </div>
+</div>
+
+<!-- 历史会话面板 -->
+<div id="history-panel" class="side-panel">
+    <div class="panel-header">
+        <h2>历史会话</h2>
+        <button id="close-history" class="close-panel">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="panel-body">
+        <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="search-history" placeholder="搜索会话..." />
+        </div>
+        <div id="history-list" class="history-list">
+            <!-- 历史会话列表将通过JavaScript动态生成 -->
+        </div>
+    </div>
+</div>
+
+<div id="overlay" class="overlay"></div>
+
+@section Scripts {
+    <script src="~/js/chat.js"></script>
+}

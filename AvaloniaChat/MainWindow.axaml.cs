@@ -35,7 +35,7 @@ namespace AvaloniaChat
             _chatService = new SemanticKernelChatService(apiKey, apiUri, modelId);
 
             // 添加欢迎消息
-            _messages.Add(new ChatMessage(Sender.Assistant, "你好！我是基于OpenAI的AI助手。有什么我可以帮助你的吗？"));
+            _messages.Add(new ChatMessage(Sender.Assistant, $"你好！我是基于{modelId}的AI助手。有什么我可以帮助你的吗？"));
         }
 
 
