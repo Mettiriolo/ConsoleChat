@@ -45,12 +45,6 @@ namespace RazorPageChat
 
             app.MapRazorPages();
 
-            using (var scope = app.Services.CreateScope())
-            {
-                var context = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
-                context.Database.Migrate(); // ‘À–– EF Core «®“∆
-            }
-
             app.Run();
         }
     }
