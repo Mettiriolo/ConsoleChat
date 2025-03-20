@@ -13,9 +13,9 @@ namespace RazorPageChat
             // Add services to the container.
             builder.Services.AddRazorPages();
 
-            string connectionString = $"server={Environment.GetEnvironmentVariable("MYSQL_ADDRESS")};database=chat_db;user={Environment.GetEnvironmentVariable("MYSQL_USERNAME")};password={Environment.GetEnvironmentVariable("MYSQL_PASSWORD")}";
+            string connectionString = "server=localhost;database=chat_db;user=chat_db;password=";
 
-            var serverVersion = new MySqlServerVersion(new Version(5, 7, 0));
+            var serverVersion = new MySqlServerVersion(new Version(5, 7, 44));
             builder.Services.AddDbContext<ChatDbContext>(options =>
             {
                 options.UseMySql(connectionString, serverVersion);

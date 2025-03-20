@@ -23,12 +23,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeHistory = document.getElementById('close-history');
     const historyList = document.getElementById('history-list');
     const searchHistory = document.getElementById('search-history');
-    const newChatButton = document.getElementById('new-chat');
     
     // 用户相关元素
     const usernameDisplay = document.getElementById('username-display');
     const userInitial = document.getElementById('user-initial');
     const logoutButton = document.getElementById('logout-button');
+    
+    // 更多菜单相关元素
+    const moreButton = document.getElementById('more-button');
+    const dropdownMenu = document.getElementById('dropdown-menu');
+    const newChatHeaderButton = document.getElementById('new-chat-header');
     
     // 当前用户数据
     let currentUser = null;
@@ -56,6 +60,43 @@ document.addEventListener('DOMContentLoaded', function() {
     loadUserData();
     loadConfig();
     loadChatHistory();
+    
+    // 更多菜单按钮点击事件
+    moreButton.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleDropdownMenu();
+    });
+    
+    // 点击页面其他地方关闭菜单
+    document.addEventListener('click', function() {
+        closeDropdownMenu();
+    });
+    
+    // 顶部新会话按钮点击事件
+    if (newChatHeaderButton) {
+        newChatHeaderButton.addEventListener('click', function() {
+            createNewSession();
+        });
+    }
+    
+    // 切换下拉菜单状态
+    function toggleDropdownMenu() {
+        if (dropdownMenu.classList.contains('active')) {
+            closeDropdownMenu();
+        } else {
+            openDropdownMenu();
+        }
+    }
+    
+    // 打开下拉菜单
+    function openDropdownMenu() {
+        dropdownMenu.classList.add('active');
+    }
+    
+    // 关闭下拉菜单
+    function closeDropdownMenu() {
+        dropdownMenu.classList.remove('active');
+    }
     
     // 检查用户是否已登录
     function checkUserLogin() {
@@ -107,7 +148,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 登出按钮点击事件
-    logoutButton.addEventListener('click', function() {
+    logoutButton.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeDropdownMenu();
         logout();
     });
     
@@ -346,7 +389,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 配置面板相关功能
     
     // 打开配置面板
-    configButton.addEventListener('click', function() {
+    configButton.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeDropdownMenu();
         openConfigPanel();
     });
     
@@ -421,7 +466,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 历史会话相关功能
     
     // 打开历史会话面板
-    historyButton.addEventListener('click', function() {
+    historyButton.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeDropdownMenu();
         openHistoryPanel();
     });
     
@@ -436,13 +483,9 @@ document.addEventListener('DOMContentLoaded', function() {
         displayChatHistory(searchTerm);
     });
     
-    // 创建新会话
-    newChatButton.addEventListener('click', function() {
-        createNewSession();
-    });
-    
     // 打开历史会话面板
     function openHistoryPanel() {
+        historyPanel.style.transform = 'translateX(0)';
         historyPanel.classList.add('active');
         overlay.classList.add('active');
         
@@ -456,6 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 关闭历史会话面板
     function closeHistoryPanel() {
         historyPanel.classList.remove('active');
+        historyPanel.style.transform = 'translateX(-100%)';
         if (!configPanel.classList.contains('active')) {
             overlay.classList.remove('active');
         }
@@ -480,10 +524,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // 清空聊天界面
         chatMessages.innerHTML = '';
         
-        // 添加欢迎消息
+        // 添加欢迎消息，包含用户名
+        const username = currentUser && currentUser.username ? currentUser.username : '您';
         const welcomeMessage = {
             role: 'assistant',
-            content: '你好！我是基于deepseek-chat的AI助手。有什么我可以帮助你的吗？',
+            content: `你好，${username}！我是基于deepseek-chat的AI助手。有什么我可以帮助你的吗？`,
             timestamp: new Date().toISOString()
         };
         
@@ -559,24 +604,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 如果有历史会话，加载最近的一个
                 if (chatHistory.length > 0) {
                     loadSession(chatHistory[0].id);
+                } else {
+                    // 如果有历史记录键但为空，添加欢迎消息
+                    addWelcomeMessage();
                 }
             } catch (e) {
                 console.error('Error parsing chat history:', e);
                 chatHistory = [];
+                // 添加欢迎消息
+                addWelcomeMessage();
             }
         } else {
             // 如果没有历史会话，则添加欢迎消息
-            const welcomeMessage = {
-                role: 'assistant',
-                content: '你好！我是基于deepseek-chat的AI助手。有什么我可以帮助你的吗？',
-                timestamp: new Date().toISOString()
-            };
-            
-            currentMessages.push(welcomeMessage);
-            
-            // 添加欢迎消息到聊天界面
-            addMessage(welcomeMessage.content, 'assistant');
+            addWelcomeMessage();
         }
+    }
+    
+    // 添加欢迎消息
+    function addWelcomeMessage() {
+        // 获取用户名，如果存在
+        const username = currentUser && currentUser.username ? currentUser.username : '您';
+        
+        const welcomeMessage = {
+            role: 'assistant',
+            content: `你好，${username}！我是基于deepseek-chat的AI助手。有什么我可以帮助你的吗？`,
+            timestamp: new Date().toISOString()
+        };
+        
+        currentMessages.push(welcomeMessage);
+        
+        // 添加欢迎消息到聊天界面
+        addMessage(welcomeMessage.content, 'assistant');
     }
     
     // 显示历史会话列表
@@ -711,6 +769,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 显示通知
     function showNotification(message) {
+        // 移除已存在的通知
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notification => {
+            notification.remove();
+        });
+        
         // 创建通知元素
         const notification = document.createElement('div');
         notification.className = 'notification';
@@ -729,7 +793,58 @@ document.addEventListener('DOMContentLoaded', function() {
             notification.classList.remove('active');
             setTimeout(() => {
                 notification.remove();
-            }, 300);
+            }, 350); // 与动画持续时间匹配
         }, 3000);
     }
-}); 
+
+    // 添加触摸滑动关闭历史面板的功能
+    if (historyPanel) {
+        let startX = 0;
+        let currentX = 0;
+        
+        historyPanel.addEventListener('touchstart', function(e) {
+            startX = e.touches[0].clientX;
+        });
+        
+        historyPanel.addEventListener('touchmove', function(e) {
+            if (startX < 50) { // 只有从边缘开始滑动才处理
+                currentX = e.touches[0].clientX;
+                const translateX = currentX - startX;
+                
+                if (translateX < 0) return; // 只允许向右滑动关闭
+                
+                // 应用变换，跟随手指移动
+                this.style.transform = `translateX(${translateX}px)`;
+                this.style.transition = 'none';
+                
+                // 根据滑动距离调整背景透明度
+                const opacity = 1 - (translateX / 200);
+                overlay.style.opacity = opacity > 0 ? opacity : 0;
+            }
+        });
+        
+        historyPanel.addEventListener('touchend', function(e) {
+            this.style.transition = 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
+            
+            if (currentX - startX > 80) { // 如果滑动距离足够，关闭面板
+                closeHistoryPanel();
+            } else { // 否则回到原位
+                this.style.transform = 'translateX(0)';
+                overlay.style.opacity = '1';
+            }
+            
+            startX = 0;
+            currentX = 0;
+        });
+    }
+
+    // 添加点击历史记录外部区域关闭面板的功能
+    historyPanel.addEventListener('click', function(e) {
+        e.stopPropagation(); // 防止点击面板内部时关闭
+    });
+
+    // 添加点击配置面板外部区域关闭面板的功能
+    configPanel.addEventListener('click', function(e) {
+        e.stopPropagation(); // 防止点击面板内部时关闭
+    });
+});

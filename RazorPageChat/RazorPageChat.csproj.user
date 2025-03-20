@@ -2,7 +2,7 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ActiveDebugProfile>RazorPageChat</ActiveDebugProfile>
-    <NameOfLastUsedPublishProfile>C:\Users\yangf\source\repos\Mettiriolo\ConsoleChat\RazorPageChat\Properties\PublishProfiles\registry.hub.docker.com_yangfan2022.pubxml</NameOfLastUsedPublishProfile>
+    <NameOfLastUsedPublishProfile>C:\Users\18446\Desktop\AI\ConsoleChat\RazorPageChat\Properties\PublishProfiles\FolderProfile.pubxml</NameOfLastUsedPublishProfile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DebuggerFlavor>ProjectDebugger</DebuggerFlavor>

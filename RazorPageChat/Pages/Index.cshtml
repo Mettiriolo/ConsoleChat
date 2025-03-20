@@ -7,30 +7,8 @@
 <div id="login-check" style="display: none;"></div>
 
 <div class="chat-container">
-    <!-- 顶部按钮组 -->
-    <div class="top-buttons">
-        <div class="user-info">
-            <div class="user-avatar">
-                <span id="user-initial">?</span>
-            </div>
-            <span id="username-display" class="username-display">用户</span>
-        </div>
-        <button id="logout-button" class="action-button" title="登出">
-            <i class="fas fa-sign-out-alt"></i>
-        </button>
-        <button id="history-button" class="action-button" title="历史会话">
-            <i class="fas fa-history"></i>
-        </button>
-        <button id="config-button" class="action-button" title="设置">
-            <i class="fas fa-cog"></i>
-        </button>
-    </div>
-
     <div class="chat-messages" id="chat-messages">
-      @*   <div class="message assistant-message">
-            <div class="message-avatar assistant-avatar">A</div>
-            <div class="message-content">你好！我是基于deepseek-chat的AI助手。有什么我可以帮助你的吗？</div>
-        </div> *@
+        <!-- 聊天消息将通过JavaScript动态添加 -->
     </div>
     
     <div class="chat-input-container">
@@ -42,13 +20,6 @@
                 </button>
             </div>
         </form>
-    </div>
-    
-    <!-- 底部按钮组 -->
-    <div class="bottom-actions">
-        <button id="new-chat" class="text-button">
-            <i class="fas fa-plus-circle"></i> 新会话
-        </button>
     </div>
 </div>
 
