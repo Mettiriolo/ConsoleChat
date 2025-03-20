@@ -1,109 +1,129 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.querySelector('.login-body');
+    const loginButton = document.getElementById('login-button');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
-    const rememberMeInput = document.getElementById('remember-me');
-    const loginButton = document.getElementById('login-button');
-    const demoAccountButton = document.getElementById('demo-account');
+    const rememberMeCheckbox = document.getElementById('remember-me');
     const errorMessage = document.getElementById('error-message');
-    
-    // 检查是否有保存的登录信息
-    checkSavedLogin();
-    
-    // 设置输入框焦点
-    setTimeout(() => {
-        usernameInput.focus();
-    }, 500);
-    
+    const demoAccountButton = document.getElementById('demo-account');
+
+    // 如果有保存的用户名, 自动填充
+    const savedUser = localStorage.getItem('chatUser');
+    if (savedUser) {
+        try {
+            const userData = JSON.parse(savedUser);
+            if (userData.username && userData.rememberMe) {
+                usernameInput.value = userData.username;
+                rememberMeCheckbox.checked = true;
+            }
+        } catch (e) {
+            console.error('Error parsing saved user:', e);
+        }
+    }
+
     // 登录按钮点击事件
     loginButton.addEventListener('click', function(e) {
         e.preventDefault();
         login();
     });
-    
-    // 按回车键登录
-    loginForm.addEventListener('keydown', function(e) {
+
+    // 演示账号按钮点击事件
+    demoAccountButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        usernameInput.value = 'demo';
+        passwordInput.value = 'demo';
+        login();
+    });
+
+    // 输入字段回车事件
+    usernameInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            passwordInput.focus();
+        }
+    });
+
+    passwordInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             login();
         }
     });
-    
-    // 使用演示账号登录
-    demoAccountButton.addEventListener('click', function(e) {
-        e.preventDefault();
-        usernameInput.value = 'demo';
-        passwordInput.value = 'demo123';
-        rememberMeInput.checked = false;
-        login();
-    });
-    
-    // 检查是否有保存的登录信息
-    function checkSavedLogin() {
-        const savedUser = localStorage.getItem('chatUser');
-        if (savedUser) {
-            try {
-                const userData = JSON.parse(savedUser);
-                if (userData.rememberMe) {
-                    usernameInput.value = userData.username || '';
-                    rememberMeInput.checked = true;
-                }
-            } catch (e) {
-                console.error('Error parsing saved login info:', e);
-            }
-        }
-    }
-    
+
     // 登录函数
-    function login() {
+    async function login() {
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
-        const rememberMe = rememberMeInput.checked;
-        
-        // 验证输入
+        const rememberMe = rememberMeCheckbox.checked;
+
         if (!username) {
             showError('请输入用户名');
             usernameInput.focus();
             return;
         }
-        
+
         if (!password) {
             showError('请输入密码');
             passwordInput.focus();
             return;
         }
+
+        // 显示加载状态
+        loginButton.disabled = true;
+        loginButton.textContent = '登录中...';
         
-        // 在实际应用中，这里应该调用后端API进行用户验证
-        // 由于这是前端演示，我们简单模拟一个验证过程
-        
-        // 这里简单验证，实际应用中应该通过API验证
-        // 演示账号或任意非空用户名和密码都可以登录
-        if (username === 'demo' && password === 'demo123' || (username && password)) {
-            const userData = {
-                username: username,
-                loggedIn: true,
-                rememberMe: rememberMe,
-                loginTime: new Date().toISOString()
-            };
+        try {
+            const response = await fetch('/api/user/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username,
+                    password,
+                    rememberMe
+                })
+            });
+
+            if (response.ok) {
+                const userData = await response.json();
+                
+                // 保存登录状态到localStorage
+                localStorage.setItem('chatUser', JSON.stringify({
+                    id: userData.id,
+                    username: userData.username,
+                    email: userData.email,
+                    loggedIn: true,
+                    rememberMe
+                }));
+                
+                // 跳转到聊天页面
+                window.location.href = '/';
+            } else {
+                const errorData = await response.text();
+                showError(errorData || '登录失败，请检查用户名和密码');
+                
+                // 还原按钮状态
+                loginButton.disabled = false;
+                loginButton.textContent = '登录';
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            showError('网络错误，请稍后重试');
             
-            // 保存用户数据到localStorage
-            localStorage.setItem('chatUser', JSON.stringify(userData));
-            
-            // 跳转到聊天页面
-            window.location.href = '/';
-        } else {
-            showError('用户名或密码错误');
+            // 还原按钮状态
+            loginButton.disabled = false;
+            loginButton.textContent = '登录';
         }
     }
-    
+
     // 显示错误信息
     function showError(message) {
         errorMessage.textContent = message;
-        errorMessage.classList.add('active');
+        errorMessage.style.display = 'block';
         
-        // 3秒后隐藏错误信息
+        // 5秒后自动隐藏错误信息
         setTimeout(() => {
-            errorMessage.classList.remove('active');
-        }, 3000);
+            errorMessage.style.display = 'none';
+        }, 5000);
     }
 }); 

@@ -224,23 +224,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 发送消息函数
-    function sendMessage() {
+    async function sendMessage() {
         const message = chatInput.value.trim();
         if (message === '') return;
 
-        // 创建用户消息对象
-        const userMessage = {
-            role: 'user',
-            content: message,
-            timestamp: new Date().toISOString()
-        };
-        
-        // 添加消息到当前会话
-        currentMessages.push(userMessage);
-        
         // 添加用户消息到聊天界面
         addMessage(message, 'user');
         
+        // 保存用户消息到内部历史
+        currentMessages.push({
+            content: message,
+            sender: 'user',
+            timestamp: new Date().toISOString()
+        });
+
+        // 保存到服务器
+        if (currentUser && currentUser.loggedIn) {
+            saveMessageToServer({
+                sessionId: currentSessionId,
+                content: message,
+                sender: 'user',
+                username: currentUser.username
+            });
+        }
+
         // 清空输入框并重置高度
         chatInput.value = '';
         chatInput.style.height = 'auto';
@@ -248,107 +255,107 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 滚动到底部
         scrollToBottom();
-        
-        // 显示"正在输入"提示
-        showTypingIndicator();
-        
-        // 使用实际API获取AI响应
-        fetchAIResponse(currentMessages);
+
+        // 发送消息到AI并获取回复
+        await sendMessageToAI(message);
     }
 
-    // 使用实际API获取AI响应
-    function fetchAIResponse(messages) {
-        // 取消之前的SSE连接(如果存在)
-        if (window.activeSSE) {
-            window.activeSSE.close();
+    // 发送消息到AI并处理回复
+    async function sendMessageToAI(userInput) {
+        // 如果API配置不完整，显示错误
+        if (!apiConfig.apiKey) {
+            showErrorToast('请先设置API密钥');
+            return;
         }
+
+        // 准备消息历史记录
+        const messageHistory = [];
         
-        // 准备API请求数据
-        const requestData = {
-            messages: messages.map(msg => ({
-                role: msg.role,
+        // 添加当前会话的历史记录
+        for (const msg of currentMessages) {
+            messageHistory.push({
+                role: msg.sender === 'user' ? 'user' : 'assistant',
                 content: msg.content
-            })),
-            model: apiConfig.modelId,
-            stream: true // 使用流式响应
-        };
-        
-        // 创建SSE连接
-        const eventSource = new EventSource(`${apiConfig.endpoint}/stream?api_key=${encodeURIComponent(apiConfig.apiKey)}`);
-        window.activeSSE = eventSource;
-        
-        let aiResponse = '';
-        let responseMessageElement = null;
-        
-        // 监听消息事件
-        eventSource.onmessage = function(event) {
-            try {
-                // 隐藏"正在输入"提示
-                hideTypingIndicator();
+            });
+        }
+
+        try {
+            // 显示思考中状态
+            const assistantMessage = addMessage('', 'assistant', true);
+            
+            // 调用后端API
+            const response = await fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    messages: messageHistory,
+                    apiKey: apiConfig.apiKey,
+                    endpoint: apiConfig.endpoint,
+                    modelId: apiConfig.modelId
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
                 
-                // 解析服务器发送的数据
-                const data = JSON.parse(event.data);
-                
-                // 增量更新回复内容
-                if (data.choices && data.choices[0].delta.content) {
-                    aiResponse += data.choices[0].delta.content;
+                if (data.success) {
+                    // 更新消息内容
+                    updateMessage(assistantMessage, data.response);
                     
-                    // 如果是第一次收到内容，创建消息元素
-                    if (!responseMessageElement) {
-                        responseMessageElement = addStreamingMessage('', 'assistant');
-                    }
+                    // 保存到数据库
+                    saveMessageToServer({
+                        sessionId: currentSessionId,
+                        content: data.response,
+                        sender: 'assistant',
+                        username: currentUser ? currentUser.username : 'guest'
+                    });
                     
-                    // 更新消息内容（解析markdown）
-                    updateStreamingMessage(responseMessageElement, aiResponse);
-                    
-                    // 滚动到底部
-                    scrollToBottom();
+                    // 更新内部消息历史
+                    currentMessages.push({
+                        content: data.response,
+                        sender: 'assistant',
+                        timestamp: new Date().toISOString()
+                    });
+                } else {
+                    // 处理错误
+                    updateMessage(assistantMessage, '抱歉，发生了错误: ' + (data.error || '未知错误'));
+                    console.error('AI响应错误:', data.error);
                 }
-            } catch (error) {
-                console.error('Error parsing SSE message:', error);
+            } else {
+                const errorText = await response.text();
+                updateMessage(assistantMessage, '抱歉，请求失败: ' + errorText);
+                console.error('API请求失败:', response.status, errorText);
             }
-        };
-        
-        // 监听事件完成
-        eventSource.addEventListener('done', function(event) {
-            // 关闭SSE连接
-            eventSource.close();
-            window.activeSSE = null;
-            
-            // 创建AI消息对象
-            const assistantMessage = {
-                role: 'assistant',
-                content: aiResponse,
-                timestamp: new Date().toISOString()
-            };
-            
-            // 添加消息到当前会话
-            currentMessages.push(assistantMessage);
-            
-            // 保存会话到历史
-            saveCurrentSession();
-            
-            // 重新聚焦到输入框
-            chatInput.focus();
-        });
-        
-        // 监听错误
-        eventSource.onerror = function(error) {
-            console.error('SSE Error:', error);
-            
-            // 隐藏"正在输入"提示
-            hideTypingIndicator();
-            
-            // 显示错误消息
-            addMessage('连接错误，请检查API设置或网络连接后重试。', 'assistant');
-            
-            // 关闭SSE连接
-            eventSource.close();
-            window.activeSSE = null;
-            
-            // 保存会话到历史
-            saveCurrentSession();
-        };
+        } catch (error) {
+            console.error('发送消息异常:', error);
+            showErrorToast('发送消息失败: ' + error.message);
+        }
+    }
+
+    // 保存消息到服务器
+    async function saveMessageToServer(message) {
+        if (!currentUser || !currentUser.loggedIn) {
+            // 离线模式，不保存到服务器
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/chat/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(message)
+            });
+
+            if (!response.ok) {
+                console.error('保存消息失败:', await response.text());
+            }
+        } catch (error) {
+            console.error('保存消息异常:', error);
+        }
     }
 
     // 添加流式消息元素到聊天界面（返回元素引用以便更新）
@@ -389,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 添加消息到聊天界面（更新为支持markdown）
-    function addMessage(content, sender) {
+    function addMessage(content, sender, isTypingIndicator = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}-message`;
         messageDiv.style.opacity = '0';
