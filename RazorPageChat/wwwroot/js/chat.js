@@ -252,30 +252,68 @@ document.addEventListener('DOMContentLoaded', function() {
         // 显示"正在输入"提示
         showTypingIndicator();
         
-        // 保存会话到历史
-        saveCurrentSession();
-        
-        // 模拟AI回复（在实际应用中，这里应该是API调用）
-        simulateAIResponse();
+        // 使用实际API获取AI响应
+        fetchAIResponse(currentMessages);
     }
 
-    // 模拟AI响应
-    function simulateAIResponse() {
-        // 计算基于消息长度的响应时间（使体验更真实）
-        const responseTime = Math.random() * 1000 + 800; 
+    // 使用实际API获取AI响应
+    function fetchAIResponse(messages) {
+        // 取消之前的SSE连接(如果存在)
+        if (window.activeSSE) {
+            window.activeSSE.close();
+        }
         
-        setTimeout(() => {
-            // 隐藏"正在输入"提示
-            hideTypingIndicator();
-            
-            // 生成随机AI回复（仅作演示用）
-            const responses = [
-                "这是一个优化后的聊天界面演示。界面更加美观，交互更加流畅。",
-                "你好！我是AI助手。这个界面现在支持更好的动画效果和响应式设计。",
-                "看起来这个聊天界面现在更加现代化了。我喜欢这些细节上的改进。",
-                "这些UI改进使得聊天体验更加愉快。你注意到那些平滑的动画效果了吗？"
-            ];
-            const aiResponse = responses[Math.floor(Math.random() * responses.length)];
+        // 准备API请求数据
+        const requestData = {
+            messages: messages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            })),
+            model: apiConfig.modelId,
+            stream: true // 使用流式响应
+        };
+        
+        // 创建SSE连接
+        const eventSource = new EventSource(`${apiConfig.endpoint}/stream?api_key=${encodeURIComponent(apiConfig.apiKey)}`);
+        window.activeSSE = eventSource;
+        
+        let aiResponse = '';
+        let responseMessageElement = null;
+        
+        // 监听消息事件
+        eventSource.onmessage = function(event) {
+            try {
+                // 隐藏"正在输入"提示
+                hideTypingIndicator();
+                
+                // 解析服务器发送的数据
+                const data = JSON.parse(event.data);
+                
+                // 增量更新回复内容
+                if (data.choices && data.choices[0].delta.content) {
+                    aiResponse += data.choices[0].delta.content;
+                    
+                    // 如果是第一次收到内容，创建消息元素
+                    if (!responseMessageElement) {
+                        responseMessageElement = addStreamingMessage('', 'assistant');
+                    }
+                    
+                    // 更新消息内容（解析markdown）
+                    updateStreamingMessage(responseMessageElement, aiResponse);
+                    
+                    // 滚动到底部
+                    scrollToBottom();
+                }
+            } catch (error) {
+                console.error('Error parsing SSE message:', error);
+            }
+        };
+        
+        // 监听事件完成
+        eventSource.addEventListener('done', function(event) {
+            // 关闭SSE连接
+            eventSource.close();
+            window.activeSSE = null;
             
             // 创建AI消息对象
             const assistantMessage = {
@@ -287,22 +325,34 @@ document.addEventListener('DOMContentLoaded', function() {
             // 添加消息到当前会话
             currentMessages.push(assistantMessage);
             
-            // 添加AI回复到聊天界面
-            addMessage(aiResponse, 'assistant');
-            
             // 保存会话到历史
             saveCurrentSession();
             
-            // 滚动到底部
-            scrollToBottom();
-            
             // 重新聚焦到输入框
             chatInput.focus();
-        }, responseTime);
+        });
+        
+        // 监听错误
+        eventSource.onerror = function(error) {
+            console.error('SSE Error:', error);
+            
+            // 隐藏"正在输入"提示
+            hideTypingIndicator();
+            
+            // 显示错误消息
+            addMessage('连接错误，请检查API设置或网络连接后重试。', 'assistant');
+            
+            // 关闭SSE连接
+            eventSource.close();
+            window.activeSSE = null;
+            
+            // 保存会话到历史
+            saveCurrentSession();
+        };
     }
 
-    // 添加消息到聊天界面
-    function addMessage(content, sender) {
+    // 添加流式消息元素到聊天界面（返回元素引用以便更新）
+    function addStreamingMessage(content, sender) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}-message`;
         messageDiv.style.opacity = '0';
@@ -313,8 +363,8 @@ document.addEventListener('DOMContentLoaded', function() {
         avatarDiv.innerText = sender === 'user' ? (currentUser ? currentUser.username.charAt(0).toUpperCase() : 'U') : 'A';
         
         const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-        contentDiv.innerText = content;
+        contentDiv.className = 'message-content markdown-body';
+        contentDiv.innerHTML = parseMarkdown(content);
         
         messageDiv.appendChild(avatarDiv);
         messageDiv.appendChild(contentDiv);
@@ -326,6 +376,121 @@ document.addEventListener('DOMContentLoaded', function() {
             messageDiv.style.opacity = '1';
             messageDiv.style.transform = 'translateY(0)';
         }, 10);
+        
+        return messageDiv;
+    }
+
+    // 更新流式消息内容
+    function updateStreamingMessage(messageElement, content) {
+        const contentDiv = messageElement.querySelector('.message-content');
+        if (contentDiv) {
+            contentDiv.innerHTML = parseMarkdown(content);
+        }
+    }
+
+    // 添加消息到聊天界面（更新为支持markdown）
+    function addMessage(content, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}-message`;
+        messageDiv.style.opacity = '0';
+        messageDiv.style.transform = 'translateY(20px)';
+        
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = `message-avatar ${sender}-avatar`;
+        avatarDiv.innerText = sender === 'user' ? (currentUser ? currentUser.username.charAt(0).toUpperCase() : 'U') : 'A';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content' + (sender === 'assistant' ? ' markdown-body' : '');
+        
+        // 根据发送者使用不同的内容处理
+        if (sender === 'assistant') {
+            contentDiv.innerHTML = parseMarkdown(content);
+        } else {
+            contentDiv.innerText = content;
+        }
+        
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(contentDiv);
+        chatMessages.appendChild(messageDiv);
+        
+        // 使用setTimeout创建更流畅的动画效果
+        setTimeout(() => {
+            messageDiv.style.transition = 'all 0.3s ease';
+            messageDiv.style.opacity = '1';
+            messageDiv.style.transform = 'translateY(0)';
+        }, 10);
+        
+        return messageDiv;
+    }
+
+    // 解析Markdown文本为HTML（使用简单的正则表达式实现，生产环境请考虑使用专业库）
+    function parseMarkdown(text) {
+        if (!text) return '';
+        
+        // 处理代码块 (```code```)
+        text = text.replace(/```(\w*)([\s\S]*?)```/g, function(match, language, code) {
+            return `<pre class="code-block${language ? ' language-'+language : ''}"><code>${escapeHTML(code.trim())}</code></pre>`;
+        });
+        
+        // 处理内联代码 (`code`)
+        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+        
+        // 处理加粗 (**text**)
+        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        // 处理斜体 (*text*)
+        text = text.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+        
+        // 处理标题 (# Title)
+        text = text.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+        text = text.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+        text = text.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+        
+        // 处理列表 (- item)
+        text = text.replace(/^\- (.*$)/gm, '<li>$1</li>');
+        text = text.replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>');
+        
+        // 处理链接 ([text](url))
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+        
+        // 处理换行 (保留换行符)
+        text = text.replace(/\n/g, '<br/>');
+        
+        return text;
+    }
+
+    // 转义HTML特殊字符，避免XSS攻击
+    function escapeHTML(unsafe) {
+        return unsafe
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
+
+    // 保存配置
+    saveConfig.addEventListener('click', function() {
+        saveConfiguration();
+        closeConfigPanel();
+        
+        // 显示配置已保存的提示
+        showNotification('配置已保存');
+    });
+
+    // 加载配置
+    function loadConfig() {
+        // 从当前用户的命名空间加载配置
+        const configKey = `chatApiConfig_${currentUser ? currentUser.username : 'default'}`;
+        const savedConfig = localStorage.getItem(configKey);
+        
+        if (savedConfig) {
+            try {
+                apiConfig = JSON.parse(savedConfig);
+            } catch (e) {
+                console.error('Error parsing saved config:', e);
+            }
+        }
     }
 
     // 显示"正在输入"提示
@@ -406,15 +571,6 @@ document.addEventListener('DOMContentLoaded', function() {
         closeHistoryPanel();
     });
     
-    // 保存配置
-    saveConfig.addEventListener('click', function() {
-        saveConfiguration();
-        closeConfigPanel();
-        
-        // 显示配置已保存的提示
-        showNotification('配置已保存');
-    });
-    
     // 打开配置面板
     function openConfigPanel() {
         // 填充当前配置到表单
@@ -434,32 +590,6 @@ document.addEventListener('DOMContentLoaded', function() {
         configPanel.classList.remove('active');
         if (!historyPanel.classList.contains('active')) {
             overlay.classList.remove('active');
-        }
-    }
-    
-    // 保存配置
-    function saveConfiguration() {
-        apiConfig.apiKey = apiKeyInput.value.trim();
-        apiConfig.endpoint = endpointInput.value.trim() || 'https://api.deepseek.com/v1/chat/completions';
-        apiConfig.modelId = modelIdInput.value.trim() || 'deepseek-chat';
-        
-        // 保存到localStorage (保存到当前用户的命名空间)
-        const configKey = `chatApiConfig_${currentUser ? currentUser.username : 'default'}`;
-        localStorage.setItem(configKey, JSON.stringify(apiConfig));
-    }
-    
-    // 加载配置
-    function loadConfig() {
-        // 从当前用户的命名空间加载配置
-        const configKey = `chatApiConfig_${currentUser ? currentUser.username : 'default'}`;
-        const savedConfig = localStorage.getItem(configKey);
-        
-        if (savedConfig) {
-            try {
-                apiConfig = JSON.parse(savedConfig);
-            } catch (e) {
-                console.error('Error parsing saved config:', e);
-            }
         }
     }
     

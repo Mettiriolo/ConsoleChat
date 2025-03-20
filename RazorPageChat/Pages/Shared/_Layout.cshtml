@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - 智能聊天助手</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css" />
     <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
 </head>
@@ -53,6 +55,35 @@
     </div>
 
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 监听DOM变化，为新添加的代码块应用语法高亮
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                        // 检查新添加的节点中是否有代码块
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === 1) { // 元素节点
+                                const codeBlocks = node.querySelectorAll('pre code');
+                                if (codeBlocks.length > 0) {
+                                    codeBlocks.forEach(block => {
+                                        hljs.highlightElement(block);
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // 开始监听聊天消息区域的变化
+            observer.observe(document.getElementById('chat-messages'), {
+                childList: true,
+                subtree: true
+            });
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
